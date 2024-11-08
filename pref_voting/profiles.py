@@ -490,29 +490,59 @@ class Profile(object):
         return MarginGraph.from_profile(self).is_uniquely_weighted()
     
     def remove_candidates(self, cands_to_ignore):
-        r"""Remove all candidates from ``cands_to_ignore`` from the profile. 
+        r"""Remove all candidates from ``cands_to_ignore`` from the profile.
 
         :param cands_to_ignore: list of candidates to remove from the profile
         :type cands_to_ignore: list[int]
-        :returns: a profile with candidates from ``cands_to_ignore`` removed and a dictionary mapping the candidates from the new profile to the original candidate names. 
+        :returns: a profile with candidates from ``cands_to_ignore`` removed and a dictionary mapping the candidates from the new profile to the original candidate names.
 
-        .. warning:: Since the candidates in a Profile must be named :math:`0, 1, \ldots, n-1` (where :math:`n` is the number of candidates), you must use the candidate map returned to by the function to recover the original candidate names. 
+        .. warning:: Since the candidates in a Profile must be named :math:`0, 1, \ldots, n-1` (where :math:`n` is the number of candidates), you must use the candidate map returned to by the function to recover the original candidate names.
 
-        :Example: 
+        :Example:
 
         .. exec_code::
 
-            from pref_voting.profiles import Profile 
+            from pref_voting.profiles import Profile
             prof = Profile([[0,1,2], [1,2,0], [2,0,1]])
             prof.display()
             new_prof, orig_cnames = prof.remove_candidates([1])
             new_prof.display() # displaying new candidates names
             new_prof.display(cmap=orig_cnames) # use the original candidate names
-        """        
+        """
         updated_rankings = _find_updated_profile(self._rankings, np.array(cands_to_ignore), self.num_cands)
         new_names = {c:cidx  for cidx, c in enumerate(sorted(updated_rankings[0]))}
         orig_names = {v:k  for k,v in new_names.items()}
         return Profile([[new_names[c] for c in r] for r in updated_rankings], rcounts=self._rcounts, cmap=self.cmap), orig_names
+
+    def apply_cand_permutation(self, perm):
+        r"""Apply a permutation to all rankings in the profile.
+
+        :param perm: Dictionary mapping candidates to candidates, must be a bijection over all candidates
+        :type perm: dict[int: int]
+        :returns: A new Profile with rankings transformed according to the permutation
+        :rtype: Profile
+
+        :Example:
+
+        .. code-block:: python
+
+            prof = Profile([[2, 0, 1]], [1])
+            new_prof = prof.apply_cand_permutation({0:1, 1:2, 2:0})
+            # new_prof has ranking [0, 1, 2]
+
+        .. note:: The permutation must be a bijection over all candidates in the profile.
+        """
+        # Validate permutation is bijective and uses valid candidates
+        assert all(c in self.candidates for c in perm.keys()), "All keys must be valid candidates"
+        assert all(c in self.candidates for c in perm.values()), "All values must be valid candidates"
+        assert len(set(perm.keys())) == len(set(perm.values())) == len(self.candidates), \
+            "Permutation must be a bijection over all candidates"
+
+        # Create new rankings by applying permutation
+        new_rankings = [[perm[c] for c in ranking] for ranking in self._rankings]
+
+        # Create new profile with transformed rankings
+        return Profile(new_rankings, rcounts=self._rcounts, cmap=self.cmap)
     
     def anonymize(self): 
         """

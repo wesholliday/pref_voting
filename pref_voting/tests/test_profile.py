@@ -155,8 +155,50 @@ def test_remove_candidates(test_profile):
 
     updated_prof = Profile([[0,  1], [1, 0], [1, 0]], [2, 3, 1])
     new_prof, orig_cnames = test_profile.remove_candidates([1])
-    assert new_prof == updated_prof    
+    assert new_prof == updated_prof
     assert orig_cnames == {0: 0, 1: 2}
+
+def test_apply_cand_permutation():
+    # Test basic permutation
+    prof = Profile([[2, 0, 1]], [1])
+    perm = {0:1, 1:2, 2:0}
+    new_prof = prof.apply_cand_permutation(perm)
+    assert new_prof._rankings.tolist() == [[0, 1, 2]]
+    assert new_prof._rcounts.tolist() == [1]
+
+    # Test with multiple rankings and counts
+    prof = Profile([[0, 1, 2], [1, 2, 0]], [2, 1])
+    perm = {0:2, 1:0, 2:1}
+    new_prof = prof.apply_cand_permutation(perm)
+    assert new_prof._rankings.tolist() == [[2, 0, 1], [0, 1, 2]]
+    assert new_prof._rcounts.tolist() == [2, 1]
+    assert new_prof.num_voters == 3
+
+    # Test preservation of cmap
+    cmap = {0: 'A', 1: 'B', 2: 'C'}
+    prof = Profile([[0, 1, 2]], [1], cmap=cmap)
+    perm = {0:1, 1:2, 2:0}
+    new_prof = prof.apply_cand_permutation(perm)
+    assert new_prof.cmap == cmap
+
+    # Test invalid permutations
+    prof = Profile([[0, 1, 2]], [1])
+
+    # Not bijective (two candidates map to same value)
+    with pytest.raises(AssertionError, match="Permutation must be a bijection over all candidates"):
+        prof.apply_cand_permutation({0:1, 1:1, 2:2})
+
+    # Invalid candidate in keys
+    with pytest.raises(AssertionError, match="All keys must be valid candidates"):
+        prof.apply_cand_permutation({0:1, 1:2, 3:0})
+
+    # Invalid candidate in values
+    with pytest.raises(AssertionError, match="All values must be valid candidates"):
+        prof.apply_cand_permutation({0:1, 1:2, 2:3})
+
+    # Missing candidate
+    with pytest.raises(AssertionError, match="Permutation must be a bijection over all candidates"):
+        prof.apply_cand_permutation({0:1, 1:2})
 
 def test_anonymize(): 
     prof = Profile([[0, 1], [0, 1], [0, 1]])
