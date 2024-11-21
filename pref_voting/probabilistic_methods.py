@@ -110,16 +110,70 @@ def maximal_lottery(edata, curr_cands=None):
                             margin_transformation = lambda x: x)
 
 
+@pvm(name="Random Consensus Builder")
+def random_consensus_builder(profile, curr_cands=None, beta=0.6):
+    """β-Random Consensus Builder (RCB) voting method.
+
+    Args:
+        profile (Profile): An anonymous profile of linear orders
+        curr_cands (List[int], optional): Candidates to consider. Defaults to all candidates if not provided.
+        beta (float): Threshold for elimination (default: 0.6)
+
+    Returns:
+        dict: Maps each candidate to their probability (1.0 for winner, 0.0 for others)
+    """
+    if curr_cands is None:
+        curr_cands = profile.candidates
+    elif len(curr_cands) == 0:
+        return {}
+
+    # Get all rankings and choose a random voter
+    rankings = profile.rankings
+    if not rankings:  # Handle empty profile case
+        return {c: 1.0/len(curr_cands) for c in curr_cands}
+
+    v = random.randrange(len(rankings))
+    voter_ranking = rankings[v]
+
+    # Track eliminated candidates
+    eliminated = set()
+    last_processed = None
+
+    # Process candidates in voter's preference order (worst to best)
+    for i in reversed(voter_ranking):
+        if i not in curr_cands or i in eliminated:
+            continue
+
+        # Check each candidate j that v prefers over i
+        for j in voter_ranking:
+            if j == i or j not in curr_cands or j in eliminated:
+                continue
+            if voter_ranking.index(j) < voter_ranking.index(i):
+                # Calculate s_{i ⪰ j}
+                support_ratio = profile.support(i, j) / profile.num_voters
+                if support_ratio >= beta:
+                    eliminated.add(j)
+
+        last_processed = i
+
+    # If no candidate was processed (all eliminated), distribute probability equally
+    if last_processed is None:
+        return {c: 1.0/len(curr_cands) for c in curr_cands}
+
+    # Return probability distribution (1.0 for winner, 0.0 for others)
+    return {c: 1.0 if c == last_processed else 0.0 for c in curr_cands}
+
+
 def create_probabilistic_method(vm):
     """
     Create a probabilistic voting method from a voting method.
     """
-    
+
     from pref_voting.voting_method import VotingMethod
     if type(vm) != VotingMethod:
         raise TypeError("vm must be a VotingMethod object")
-    
+
     def _pvm(profile, curr_cands=None, **kwargs):
         return vm.prob(profile, curr_cands=curr_cands, **kwargs)
-    
+
     return ProbVotingMethod(_pvm, name=f'{vm.name} with Even Chance Tiebreaking')
