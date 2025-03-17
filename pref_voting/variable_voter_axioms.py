@@ -3007,7 +3007,14 @@ nonlinear_neutral_reversal = Axiom(
 
 def has_truncated_involvement_violation(prof, vm, verbose=False):
     """
-    Returns True if there is a ballot such that starting from an updated version of prof with the ballot removed, adding a truncated version of the ballot causes the winners to shift from ranked candidates to unranked candidates.
+    Returns True if there is a ballot such that starting from an updated version of prof 
+    with the ballot removed, adding a truncated version of the ballot causes the winners 
+    to shift from candidates ranked by the truncated ballot to candidates unranked by the
+    truncated ballot.
+    
+    In other words, adding a truncated ballot to a profile shifts the winners from being 
+    entirely among the candidates ranked by the ballot to entirely among the candidates 
+    unranked by the ballot.
     
     Args:
         prof: a Profile or ProfileWithTies object.
@@ -3076,12 +3083,17 @@ def has_truncated_involvement_violation(prof, vm, verbose=False):
                         vm.display(removed_ballot_prof)
                         print("\nMargin graph of profile with ballot removed:")
                         removed_ballot_prof.display_margin_graph()
+                        print(f"Winners: {removed_ballot_winners}")
+                        print(f"\nTruncated ballot: {truncated_ballot}")
+                        print(f"Ranked candidates: {truncated_ranked_candidates}")
+                        print(f"Unranked candidates: {unranked_candidates}")
                         print("\nProfile with truncated ballot:")
                         truncated_ballot_prof.display()
                         print(truncated_ballot_prof.description())
                         vm.display(truncated_ballot_prof)
                         print("\nMargin graph of profile with truncated ballot:")
                         truncated_ballot_prof.display_margin_graph()
+                        print(f"Winners: {truncated_ballot_winners}")
                         print(f"\nWinners shifted from ranked candidates {[prof.cmap[c] for c in removed_ballot_winners if c in ranked_candidates]} to unranked candidates {[prof.cmap[c] for c in truncated_ballot_winners]}")
                     return True
     
@@ -3146,12 +3158,17 @@ def has_truncated_involvement_violation(prof, vm, verbose=False):
                         vm.display(removed_ballot_prof)
                         print("\nMargin graph of profile with ballot removed:")
                         removed_ballot_prof.display_margin_graph()
+                        print(f"Winners: {removed_ballot_winners}")
+                        print(f"\nTruncated ballot: {truncated_ballot}")
+                        print(f"Ranked candidates: {truncated_ranked_candidates}")
+                        print(f"Unranked candidates: {unranked_candidates}")
                         print("\nProfile with truncated ballot:")
                         truncated_ballot_prof.display()
                         print(truncated_ballot_prof.description())
                         vm.display(truncated_ballot_prof)
                         print("\nMargin graph of profile with truncated ballot:")
                         truncated_ballot_prof.display_margin_graph()
+                        print(f"Winners: {truncated_ballot_winners}")
                         print(f"\nWinners shifted from ranked candidates {[prof.cmap[c] for c in removed_ballot_winners if c in truncated_ranked_candidates]} to unranked candidates {[prof.cmap[c] for c in truncated_ballot_winners]}")
                     return True
     
@@ -3231,12 +3248,17 @@ def find_all_truncated_involvement_violations(prof, vm, verbose=False):
                         vm.display(removed_ballot_prof)
                         print("\nMargin graph of profile with ballot removed:")
                         removed_ballot_prof.display_margin_graph()
+                        print(f"Winners: {removed_ballot_winners}")
+                        print(f"\nTruncated ballot: {truncated_ballot}")
+                        print(f"Ranked candidates: {truncated_ranked_candidates}")
+                        print(f"Unranked candidates: {unranked_candidates}")
                         print("\nProfile with truncated ballot:")
                         truncated_ballot_prof.display()
                         print(truncated_ballot_prof.description())
                         vm.display(truncated_ballot_prof)
                         print("\nMargin graph of profile with truncated ballot:")
                         truncated_ballot_prof.display_margin_graph()
+                        print(f"Winners: {truncated_ballot_winners}")
                         print(f"\nWinners shifted from ranked candidates {[prof.cmap[c] for c in removed_ballot_winners if c in ranked_candidates]} to unranked candidates {[prof.cmap[c] for c in truncated_ballot_winners]}")
     
     elif isinstance(prof, ProfileWithTies):
@@ -3301,12 +3323,17 @@ def find_all_truncated_involvement_violations(prof, vm, verbose=False):
                         vm.display(removed_ballot_prof)
                         print("\nMargin graph of profile with ballot removed:")
                         removed_ballot_prof.display_margin_graph()
+                        print(f"Winners: {removed_ballot_winners}")
+                        print(f"\nTruncated ballot: {truncated_ballot}")
+                        print(f"Ranked candidates: {truncated_ranked_candidates}")
+                        print(f"Unranked candidates: {unranked_candidates}")
                         print("\nProfile with truncated ballot:")
                         truncated_ballot_prof.display()
                         print(truncated_ballot_prof.description())
                         vm.display(truncated_ballot_prof)
                         print("\nMargin graph of profile with truncated ballot:")
                         truncated_ballot_prof.display_margin_graph()
+                        print(f"Winners: {truncated_ballot_winners}")
                         print(f"\nWinners shifted from ranked candidates {[prof.cmap[c] for c in removed_ballot_winners if c in truncated_ranked_candidates]} to unranked candidates {[prof.cmap[c] for c in truncated_ballot_winners]}")
     
     return violations
