@@ -3043,7 +3043,14 @@ def has_truncated_involvement_violation(prof, vm, verbose=False):
                 converted_rankings = []
                 for ranking in removed_ballot_rankings:
                     converted_rankings.append({c: i+1 for i, c in enumerate(ranking)})
-                converted_rankings.append(truncated_ballot)
+                
+                # Add all unranked candidates to the truncated ballot with the same (last) rank
+                complete_truncated_ballot = truncated_ballot.copy()
+                last_rank = len(ranked_candidates) + 1
+                for c in unranked_candidates:
+                    complete_truncated_ballot[c] = last_rank
+                
+                converted_rankings.append(complete_truncated_ballot)
                 truncated_ballot_prof = ProfileWithTies(converted_rankings, candidates=prof.candidates)
                 truncated_ballot_prof.use_extended_strict_preference()
                 
@@ -3188,7 +3195,14 @@ def find_all_truncated_involvement_violations(prof, vm, verbose=False):
                 converted_rankings = []
                 for ranking in removed_ballot_rankings:
                     converted_rankings.append({c: i+1 for i, c in enumerate(ranking)})
-                converted_rankings.append(truncated_ballot)
+                
+                # Add all unranked candidates to the truncated ballot with the same (last) rank
+                complete_truncated_ballot = truncated_ballot.copy()
+                last_rank = len(ranked_candidates) + 1
+                for c in unranked_candidates:
+                    complete_truncated_ballot[c] = last_rank
+                
+                converted_rankings.append(complete_truncated_ballot)
                 truncated_ballot_prof = ProfileWithTies(converted_rankings, candidates=prof.candidates)
                 truncated_ballot_prof.use_extended_strict_preference()
                 
