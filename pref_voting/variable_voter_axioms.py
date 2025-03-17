@@ -3007,7 +3007,7 @@ nonlinear_neutral_reversal = Axiom(
 
 def has_truncated_involvement_violation(prof, vm, verbose=False):
     """
-    Returns True if there is a ballot such that (1) truncating the ballot (dropping candidates from the bottom) vs. (2) deleting the ballot entirely causes the winners to shift from being from among the candidates ranked by the truncated ballot to being from among the candidates unranked by the truncated ballot.
+    Returns True if there is a ballot such that starting from an updated version of prof with the ballot removed, adding a truncated version of the ballot causes the winners to shift from ranked candidates to unranked candidates.
     
     Args:
         prof: a Profile or ProfileWithTies object.
