@@ -3039,8 +3039,12 @@ def has_truncated_involvement_violation(prof, vm, verbose=False):
                 truncated_ballot = {c: i+1 for i, c in enumerate(ranked_candidates)}
                 
                 # Create a profile with the truncated ballot
-                truncated_ballot_rankings = removed_ballot_rankings + [truncated_ballot]
-                truncated_ballot_prof = ProfileWithTies(truncated_ballot_rankings, candidates=prof.candidates)
+                # Convert tuples to dictionaries for ProfileWithTies
+                converted_rankings = []
+                for ranking in removed_ballot_rankings:
+                    converted_rankings.append({c: i+1 for i, c in enumerate(ranking)})
+                converted_rankings.append(truncated_ballot)
+                truncated_ballot_prof = ProfileWithTies(converted_rankings, candidates=prof.candidates)
                 truncated_ballot_prof.use_extended_strict_preference()
                 
                 # Get winners when truncated ballot is added
@@ -3172,8 +3176,12 @@ def find_all_truncated_involvement_violations(prof, vm, verbose=False):
                 truncated_ballot = {c: i+1 for i, c in enumerate(ranked_candidates)}
                 
                 # Create a profile with the truncated ballot
-                truncated_ballot_rankings = removed_ballot_rankings + [truncated_ballot]
-                truncated_ballot_prof = ProfileWithTies(truncated_ballot_rankings, candidates=prof.candidates)
+                # Convert tuples to dictionaries for ProfileWithTies
+                converted_rankings = []
+                for ranking in removed_ballot_rankings:
+                    converted_rankings.append({c: i+1 for i, c in enumerate(ranking)})
+                converted_rankings.append(truncated_ballot)
+                truncated_ballot_prof = ProfileWithTies(converted_rankings, candidates=prof.candidates)
                 truncated_ballot_prof.use_extended_strict_preference()
                 
                 # Get winners when truncated ballot is added
