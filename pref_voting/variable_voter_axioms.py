@@ -3058,7 +3058,9 @@ def has_truncated_involvement_violation(prof, vm, verbose=False):
                 truncated_ballot_winners = vm(truncated_ballot_prof)
                 
                 # Check if winners shifted from ranked to unranked candidates
-                winners_from_ranked = any(c in ranked_candidates for c in removed_ballot_winners)
+                # All winners in the profile without the truncated ballot must be among the ranked candidates
+                winners_from_ranked = all(c in ranked_candidates for c in removed_ballot_winners)
+                # All winners in the profile with the truncated ballot must be among the unranked candidates
                 winners_from_unranked = all(c in unranked_candidates for c in truncated_ballot_winners)
                 
                 if winners_from_ranked and winners_from_unranked:
@@ -3210,7 +3212,9 @@ def find_all_truncated_involvement_violations(prof, vm, verbose=False):
                 truncated_ballot_winners = vm(truncated_ballot_prof)
                 
                 # Check if winners shifted from ranked to unranked candidates
-                winners_from_ranked = any(c in ranked_candidates for c in removed_ballot_winners)
+                # All winners in the profile without the truncated ballot must be among the ranked candidates
+                winners_from_ranked = all(c in ranked_candidates for c in removed_ballot_winners)
+                # All winners in the profile with the truncated ballot must be among the unranked candidates
                 winners_from_unranked = all(c in unranked_candidates for c in truncated_ballot_winners)
                 
                 if winners_from_ranked and winners_from_unranked:
