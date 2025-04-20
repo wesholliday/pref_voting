@@ -269,3 +269,58 @@ def test_dodgson_with_explanation():
     winners, scores = dodgson_with_explanation(prof_condorcet)
     assert winners == [0]  # Candidate 0 is already a Condorcet winner
     assert scores[0] == 0  # No swaps needed for the Condorcet winner
+
+
+def test_dodgson_ilp_implementation():
+    """Test that the Dodgson ILP implementation correctly finds the optimal solution."""
+    
+    prof = Profile([
+        [1, 2, 3, 0, 4],  # Here, one swap moves 0 above 3, two swaps above 2, three above 1
+        [0, 1, 2, 3, 4], 
+        [0, 1, 2, 3, 4],
+        [4, 3, 2, 1, 0]
+    ], [1, 1, 1, 1])
+    
+    
+    winners, scores = dodgson_with_explanation(prof)
+    
+    assert scores[0] == 3, "ILP implementation not finding the global optimum"
+    
+    prof2 = Profile([
+        [1, 2, 0, 3, 4],  # Swap 0 with 2 helps against 2
+        [3, 0, 2, 1, 4],  # Swap 0 with 3 helps against 3
+        [0, 1, 2, 3, 4],
+        [4, 1, 3, 2, 0]
+    ], [1, 1, 1, 1])
+    
+    winners2, scores2 = dodgson_with_explanation(prof2)
+    
+    assert scores2[0] == 2, "ILP implementation not correctly finding the optimal solution"
+    
+    prof3 = Profile([
+        [1, 2, 3, 0],  # Swapping 0 up once helps against 3, twice helps against 2, three times helps against 1
+        [2, 3, 0, 1],  # Swapping 0 up once helps against 3, twice helps against 2
+        [3, 0, 1, 2],  # Swapping 0 up once helps against 3
+        [0, 1, 2, 3]
+    ], [1, 1, 1, 1])
+    
+    winners3, scores3 = dodgson_with_explanation(prof3)
+    
+    # Candidate 0 should need exactly 3 swaps to become a Condorcet winner
+    assert scores3[0] == 3, "ILP implementation not correctly handling swap interdependence"
+    
+    prof4 = Profile([
+        [0, 1, 2, 3],
+        [1, 2, 3, 0],
+        [2, 3, 0, 1],
+        [3, 0, 1, 2]
+    ], [1, 1, 1, 1])
+    
+    winners4, scores4 = dodgson_with_explanation(prof4)
+    
+    assert scores4[0] == 3, "ILP implementation not correctly calculating scores for symmetric profiles"
+    assert scores4[1] == 3, "ILP implementation not correctly calculating scores for symmetric profiles"
+    assert scores4[2] == 3, "ILP implementation not correctly calculating scores for symmetric profiles"
+    assert scores4[3] == 3, "ILP implementation not correctly calculating scores for symmetric profiles"
+    
+    assert sorted(winners4) == [0, 1, 2, 3], "ILP implementation not correctly identifying all winners with the same score"
