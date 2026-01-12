@@ -2028,7 +2028,8 @@ def _stv_meek_with_elimination_order(profile, num_seats, candidates, by_order=No
     Used by Sequential STV to determine the initial queue. This is Meek's method
     with tracking of which candidates were excluded and in what order.
 
-    Issue 20 requires all STV counts to use Meek's method.
+    The Issue 20 Sequential STV paper (https://www.votingmatters.org.uk/ISSUE20/I20P2.PDF) 
+    requires all STV counts to use Meek's method.
 
     Args:
         by_order: A function that returns a sortable key for a candidate.
@@ -2171,7 +2172,8 @@ def _calculate_borda_scores(profile, continuing_candidates):
     """
     Calculate Borda scores for continuing candidates in Sequential STV.
 
-    Per Issue 20: "a Borda score is calculated, as the sum over all votes of the
+    Per the Sequential STV paper (https://www.votingmatters.org.uk/ISSUE20/I20P2.PDF): 
+    "a Borda score is calculated, as the sum over all votes of the
     number of continuing candidates to whom the candidate in question is preferred,
     taking all unmentioned continuing candidates as equal in last place. A continuing
     candidate who is not mentioned in a particular vote is given, for that vote, the
@@ -2241,7 +2243,7 @@ def sequential_stv(profile, num_seats=2, curr_cands=None, max_iterations=1000):
     Sequential STV as described in Voting Matters Issue 20 (2005 revision).
 
     Reference: https://www.votingmatters.org.uk/ISSUE20/I20P2.PDF
-    Original: https://www.votingmatters.org.uk/ISSUE15/P4.HTM
+    Also see: https://www.votingmatters.org.uk/ISSUE15/P4.HTM
 
     Sequential STV addresses the "premature exclusion" problem in regular STV by
     systematically testing whether any non-elected candidate could replace an elected
@@ -2271,7 +2273,9 @@ def sequential_stv(profile, num_seats=2, curr_cands=None, max_iterations=1000):
     Exclude all candidates who have never been a probable since the last restart,
     then restart retaining existing probables and queue. If no candidate can be
     excluded, use the Borda score special procedure to exclude one at-risk
-    candidate, then restart.
+    candidate, then restart. (The Borda special procedure implemented here extends 
+    the paper's averaging rule for unranked candidates to also apply to explicitly tied candidates, 
+    providing a generalization to ProfileWithTies.)
 
     All STV counts use Meek's method.
 
@@ -2291,17 +2295,14 @@ def sequential_stv(profile, num_seats=2, curr_cands=None, max_iterations=1000):
         STV from plain IRV, which can fail to elect a Condorcet winner due to
         premature exclusion.
 
-    .. note::
-        This implementation has been verified against the Issue 20 specification.
-        The Borda special procedure (used for loop resolution) extends the paper's
-        averaging rule for unranked candidates to also apply to explicitly tied
-        candidates, providing a natural generalization to ProfileWithTies.
+    .. warning::
+        This implementation of Sequential STV has not yet been thoroughly vetted.
+
     """
     if isinstance(profile, Profile):
         profile = profile.to_profile_with_ties()
 
     # Sort candidates to ensure deterministic ordering regardless of iteration order
-    # from profile.candidates (which may be a set with unstable iteration).
     candidates_list = sorted(profile.candidates) if curr_cands is None else sorted(curr_cands)
 
     if num_seats <= 0 or len(candidates_list) == 0:
@@ -2310,24 +2311,18 @@ def sequential_stv(profile, num_seats=2, curr_cands=None, max_iterations=1000):
     if num_seats >= len(candidates_list):
         return candidates_list  # Already sorted
 
-    # Since candidates are numeric, use identity as the deterministic ordering.
-    # This is simpler and gives the same result as building a map from sorted order.
-    def by_order(c):
-        """Sort key using candidate's numeric value for deterministic comparisons."""
-        return c
-
     # Phase 1: Run initial STV (Meek) to get probables and exclusion order
-    # Issue 20 requires all STV counts to use Meek's method
+    # Issue 20 sequential STV paper requires all STV counts to use Meek's method
     probables_set, exclusion_order = _stv_meek_with_elimination_order(
-        profile, num_seats, candidates_list, by_order=by_order
+        profile, num_seats, candidates_list
     )
-    probables = sorted(probables_set, key=by_order)
+    probables = sorted(probables_set)
 
     if not exclusion_order:
         return probables
 
     # Create queue in reverse exclusion order, with runner-up moved to end.
-    # Per Issue 20: "puts the others into a queue, in the reverse order of their
+    # Per Issue 20 Sequential STV paper: "puts the others into a queue, in the reverse order of their
     # exclusion in that STV count, except that the runner-up is moved to last place
     # as it is already known that an initial challenge by that candidate will not succeed."
     # Example: if exclusion_order = [A, B, C] (A excluded first, C=runner-up),
@@ -2379,7 +2374,7 @@ def sequential_stv(profile, num_seats=2, curr_cands=None, max_iterations=1000):
         challenger = queue.popleft()
 
         # Run STV (Meek) with probables + challenger competing for num_seats.
-        # Per Issue 20: "Should a tie occur during these rounds, between a probable
+        # Per Issue 20 Sequential STV paper: "Should a tie occur during these rounds, between a probable
         # and a challenger, it is resolved by maintaining the current situation;
         # that is to say, the challenger has not succeeded."
         # We implement this by using a tie_break_key that gives probables higher
@@ -2390,11 +2385,11 @@ def sequential_stv(profile, num_seats=2, curr_cands=None, max_iterations=1000):
             # tie_break_key interpretation: lower value = higher priority
             # - In elections: lower key = elected first (wins)
             # - In eliminations: lower key = survives (higher priority)
-            # Issue 20 tie rule: challenger loses ties → give probables lower key
+            # Sequential STV tie rule: challenger loses ties → give probables lower key
             if c == challenger:
-                return (1, by_order(c))  # Challenger has lower priority (loses ties)
+                return (1, c)  # Challenger has lower priority (loses ties)
             else:
-                return (0, by_order(c))  # Probables have higher priority (win ties)
+                return (0, c)  # Probables have higher priority (win ties)
 
         winners = stv_meek(
             profile, num_seats=num_seats, curr_cands=contest_cands,
@@ -2408,14 +2403,14 @@ def sequential_stv(profile, num_seats=2, curr_cands=None, max_iterations=1000):
         losers = contest_set - winners_set
 
         if len(winners_set) != num_seats or len(losers) != 1:
-            # Ambiguous outcome - treat as challenger failed (status quo per Issue 20)
+            # Ambiguous outcome - treat as challenger failed (status quo per Issue 20 Sequential STV paper)
             _t(f"[Sequential-STV] Ambiguous challenge result, maintaining status quo")
             queue.append(challenger)
             challenges_since_change += 1
         elif challenger in winners_set:
             # Challenger succeeded - find the unique loser
             loser = next(iter(losers))  # Exactly one loser
-            probables = sorted(winners_set, key=by_order)
+            probables = sorted(winners_set)
             queue.append(loser)
             challenges_since_change = 0
             ever_probable.add(challenger)
@@ -2429,7 +2424,7 @@ def sequential_stv(profile, num_seats=2, curr_cands=None, max_iterations=1000):
             _t(f"[Sequential-STV] {challenger} fails to displace anyone")
 
         # Loop detection: only check when probables has CHANGED
-        # (Issue 20 loop detection is about returning to a prior state after changes,
+        # (Sequential STV loop detection is about returning to a prior state after changes,
         # not about probables staying the same during failed challenges)
         current_probables = frozenset(probables)
         current_queue = tuple(queue)
@@ -2530,7 +2525,7 @@ def _handle_sequential_stv_loop_2005(profile, num_seats, probables, queue,
 
     else:
         # All candidates have been probable at some point - use Borda special procedure.
-        # Per Issue 20: "If there is no candidate who can be so excluded, then a special
+        # Per Issue 20 Sequential STV paper: "If there is no candidate who can be so excluded, then a special
         # procedure is used, in which each continuing candidate, other than any who has
         # always been a probable since the last restart, is classified as 'at-risk'."
         _t(f"[Sequential-STV] All candidates have been probable, using Borda special procedure")
